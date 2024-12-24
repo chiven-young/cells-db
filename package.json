@@ -1,0 +1,11 @@
+{
+  "name": "cells-db",
+  "version": "1.0.0",
+  "description": "A Local Database Solution Inspired by Cellular Structures",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Chiven Young",
+  "license": "ISC"
+}
