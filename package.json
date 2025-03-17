@@ -1,0 +1,28 @@
+{
+  "name": "cells-db",
+  "version": "1.0.1",
+  "description": "A Local Database Solution Inspired by Cellular Structures",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Chiven Young",
+  "license": "MIT",
+  "keywords": [
+    "db",
+    "cells-db",
+    "database",
+    "indexedb",
+    "pouchdb"
+  ],
+  "dependencies": {
+    "pouchdb": "^9.0.0",
+    "pouchdb-find": "^9.0.0",
+    "uuidv4": "^6.2.13"
+  },
+  "homepage": "https://www.chiven.net/#/post/cid-17c9e9f4-e250-455e-a12e-b88ebddebb68",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chiven-young/cells-db"
+  }
+}
