@@ -5,18 +5,31 @@
 
 ### 属性
 id：工作区唯一标识；
+
 version：工作区版本；
+
 name：工作区名称；
+
 description：工作区描述；
+
 icon：工作区图标；
+
 color：工作区颜色；
+
 avatar：工作区图像；
+
 createTime：工作区创建时间
+
 password：工作区密码；
+
 user：此工作区绑定的用户信息，方便多工作区对应不同的登录账户；
+
 appearance：工作区外观配置；
+
 layout：工作区布局配置
+
 config：工作区自定义配置；
+
 pages：工作区针对每个页面的自定义配置；
 
 ### 方法
@@ -73,16 +86,29 @@ db.workspace.switchWorkspace('id-xxx', (workspace) => {
 
 ### 属性
 cid：细胞唯一标识；
+
 name：细胞名称；
+
 description：细胞描述；
+
 icon：细胞图标；
+
 cover：细胞封面；
+
 type：细胞类型；
+
 typeGroup：细胞类型分组；
+
 status：细胞状态，取值0~4，0：已删除，1：草稿，2：私密，3：域内，4：公开；
+
 data；细胞主要数据；
+
 config：细胞配置；
+
 style：细胞样式；
+
+isRoot：是否是根级细胞；
+
 statistics：细胞统计信息；
 
 ### 方法
@@ -97,11 +123,11 @@ statistics：细胞统计信息；
 | 参数        | 类型               | 默认值       | 描述                                                                 |
 |-------------|--------------------|--------------|----------------------------------------------------------------------|
 | `cid`       | `string`           | -            | 精确匹配单个细胞ID（优先级最高）                                      |
-| `partition` | `string`           | `undefined`  | 数据分区标识                                                       |
 | `typeGroup` | `string`           | `undefined`  | 类型分组（如 `content`/`manage`）                                   |
 | `type`      | `string`           | `undefined`  | 具体类型（如 `markdown`/`folder`）                                  |
 | `minStatus` | `number`           | `0`          | 状态最小值（0-4）                                                   |
 | `maxStatus` | `number`           | `4`          | 状态最大值（0-4）                                                   |
+| `isRoot` | `number`           | `undefined`          | 是否是根级细胞                                                   |
 
 ###### 2. 关联关系过滤
 | 参数             | 类型                | 默认值       | 描述                                                                 |
