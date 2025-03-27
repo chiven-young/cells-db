@@ -9,43 +9,43 @@ export default class Workspace {
     constructor(parent) {
         this.parent = parent;
         
+        this.workspaceManagerDB = null;
         this.cellsDB = null;
         this.cellsRelationsDB = null;
         this.cellUserRelationsDB = null;
 
         this.currentWorkspace = null;
+        this.workspaces = [];
     }
-    static workspaceManagerDB = null;
-    static workspaces = [];
     async init(options) {
-        if (!Workspace.workspaceManagerDB) {
-            Workspace.workspaceManagerDB = new PouchDB('workspaceManager');
+        if (!this.workspaceManagerDB) {
+            this.workspaceManagerDB = new PouchDB('workspaceManager');
         }
-        Workspace.workspaces = await this.getWorkspaces();
-        if (Workspace.workspaces.length > 0) {
+        this.workspaces = await this.getWorkspaces();
+        if (this.workspaces.length > 0) {
             const activeId = sessionStorage.getItem('activeWorkspaceId');
             const list = getLocalStorageArray('recentWorkspaces');
             const recentId = list.length > 0 ? list[0] : null;
-            const workspace = Workspace.workspaces.find((w) => w.id === (options?.id || activeId || recentId));
+            const workspace = this.workspaces.find((w) => w.id === (options?.id || activeId || recentId));
             if (workspace) {
                 this.currentWorkspace = workspace;
-            } else if (Workspace.workspaces.length > 0) {
-                const firstWorkspace = Workspace.workspaces[0];
+            } else if (this.workspaces.length > 0) {
+                const firstWorkspace = this.workspaces[0];
                 this.currentWorkspace = firstWorkspace;
             }
         } else {
             this.currentWorkspace = await this.createWorkspace(options);
         }
         await this.switchWorkspace(this.currentWorkspace.id);
-        options.after(this.currentWorkspace, Workspace.workspaces);
-        this.parent.emit('after', { workspace: this.currentWorkspace, workspaces: Workspace.workspaces });
-        return { workspace: this.currentWorkspace, workspaces: Workspace.workspaces };
+        options.after(this.currentWorkspace, this.workspaces);
+        this.parent.emit('after', { workspace: this.currentWorkspace, workspaces: this.workspaces });
+        return { workspace: this.currentWorkspace, workspaces: this.workspaces };
     }
 
     // 获取工作区列表
     async getWorkspaces() {
         try {
-            const res = await Workspace.workspaceManagerDB.allDocs({ include_docs: true });
+            const res = await this.workspaceManagerDB.allDocs({ include_docs: true });
             return res.rows.map(row => row.doc);
         } catch (err) {
             console.error('getWorkspaces error:', err);
@@ -59,13 +59,13 @@ export default class Workspace {
         let workspace = formatWorkspace(data);
         console.log('createWorkspace:', data, workspace)
         try {
-            const res = await Workspace.workspaceManagerDB.put({
+            const res = await this.workspaceManagerDB.put({
                 _id: workspace.id,
                 ...workspace
             });
             this.parent.emit('workspace:created', { workspace });
-            Workspace.workspaces = await this.getWorkspaces();
-            this.parent.emit('workspaces:changed', { workspaces: Workspace.workspaces });
+            this.workspaces = await this.getWorkspaces();
+            this.parent.emit('workspaces:changed', { workspaces: this.workspaces });
             return workspace;
         } catch (err) {
             console.error('createWorkspace error:', err);
@@ -76,7 +76,7 @@ export default class Workspace {
     // 获取某个工作区的详情
     async getWorkspace(id) {
         try {
-            const res = await Workspace.workspaceManagerDB.get(id);
+            const res = await this.workspaceManagerDB.get(id);
             return res;
         } catch (err) {
             console.error('getWorkspace error:', err);
@@ -92,13 +92,13 @@ export default class Workspace {
             workspace.version++;
             delete workspace._rev;
             // 检查是否存在
-            const existingData = await Workspace.workspaceManagerDB.get(workspace.id);
+            const existingData = await this.workspaceManagerDB.get(workspace.id);
             if (existingData) {
                 const fullWorkspace = {
                     ...existingData,
                     ...workspace
                 }
-                await Workspace.workspaceManagerDB.put(fullWorkspace);
+                await this.workspaceManagerDB.put(fullWorkspace);
                 this.parent.emit('workspace:updated', { workspace: fullWorkspace });
                 if (isCurrent) {
                     this.currentWorkspace = fullWorkspace;
@@ -117,9 +117,9 @@ export default class Workspace {
     // 删除某个工作区
     async deleteWorkspace(id) {
         try {
-            const existingData = await Workspace.workspaceManagerDB.get(id);
+            const existingData = await this.workspaceManagerDB.get(id);
             if (existingData) {
-                await Workspace.workspaceManagerDB.remove(existingData);
+                await this.workspaceManagerDB.remove(existingData);
                 const cellsName = `cells_${id}`;
                 const cellRelationsName = `cellRelations_${id}`;
                 const cellUserRelationsName = `cellUserRelations_${id}`;
@@ -131,13 +131,13 @@ export default class Workspace {
                 db3.destroy();
                 removeFromLocalStorageArray('recentWorkspaces', id);
                 this.parent.emit('workspace:deleted', { id });
-                Workspace.workspaces = await this.getWorkspaces();
-                this.parent.emit('workspaces:changed', { workspaces: Workspace.workspaces });
+                this.workspaces = await this.getWorkspaces();
+                this.parent.emit('workspaces:changed', { workspaces: this.workspaces });
                 if (id !== this.currentWorkspace?.id) {
                     return true;
                 }
-                if (Workspace.workspaces.length > 0) {
-                    const firstWorkspace = Workspace.workspaces[0];
+                if (this.workspaces.length > 0) {
+                    const firstWorkspace = this.workspaces[0];
                     await this.switchWorkspace(firstWorkspace.id);
                 } else {
                     const res = await this.createWorkspace({});
@@ -189,7 +189,7 @@ export default class Workspace {
     async switchWorkspace(id, callback) {
         this.parent.emit('workspace:beforeSwitch');
         try {
-            let workspace = await Workspace.workspaceManagerDB.get(id);
+            let workspace = await this.workspaceManagerDB.get(id);
             if (workspace) {
                 workspace = formatWorkspace(workspace);
                 const cellsName = `cells_${id}`;
