@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { cellDataFormat } from '../utils/format';
-import { deepQueryObject, deepUpdateObject, checkObjPropertiesIsOnlyJson } from '../utils/data';
+import { deepQueryObject, deepUpdateObject, checkObjPropertiesIsOnlyJson, sortArrayByOrders } from '../utils/data';
 import { parseTimeToTimestamp } from '../utils/time';
 import { cellFieldsForCover, cellFieldsForTag, cellUserRelationTypes } from '../config/db';
 
@@ -50,10 +50,10 @@ export default class Cells {
                 orders.push(obj)
             }
         }
-        const page = params.page || 1;
-        const pageSize = params.pageSize || 20;
-        const minStatus = typeof params.minStatus === 'number' ? params.minStatus : 0;
-        const maxStatus = typeof params.maxStatus === 'number' ? params.maxStatus : 4;
+        const page = params?.page || 1;
+        const pageSize = params?.pageSize || 20;
+        const minStatus = typeof params?.minStatus === 'number' ? params.minStatus : 0;
+        const maxStatus = typeof params?.maxStatus === 'number' ? params.maxStatus : 4;
         try {
             let selector = {
                 status: { $gte: minStatus, $lte: maxStatus },
@@ -87,7 +87,8 @@ export default class Cells {
                 const relationRes = await this.parent.workspace.cellUserRelationsDB.find({
                     selector: {
                         type: params.relationshipType
-                    }
+                    },
+                    limit: 9999
                 })
                 const relation = relationRes.docs;
                 correlationCids1 = relation.map(item => item.cid);
@@ -101,7 +102,8 @@ export default class Cells {
                 const relationsRes = await this.parent.workspace.cellsRelationsDB.find({
                     selector: {
                         sourceId: { $in: params.parentIds },
-                    }
+                    },
+                    limit: 9999
                 })
                 const relation = relationsRes.docs;
                 correlationCidsByParentIds = relation.map(item => item.targetId);
@@ -110,7 +112,8 @@ export default class Cells {
                 const relationsRes = await this.parent.workspace.cellsRelationsDB.find({
                     selector: {
                         targetId: { $in: params.childIds },
-                    }
+                    },
+                    limit: 9999
                 })
                 const relation = relationsRes.docs;
                 correlationCidsByChildIds = relation.map(item => item.sourceId);
@@ -144,11 +147,6 @@ export default class Cells {
             } else if (isCorrelation || params.relationshipType) {
                 return { data: [], total: 0 };
             }
-            const totalResult = await this.parent.workspace.cellsDB.find({
-                selector: selector,
-                fields: ['_id']
-            });
-            const total = totalResult.docs.length;
 
             let sort = [];
             if (orders.length > 0) {
@@ -167,19 +165,21 @@ export default class Cells {
             if (pageSize !== -1) {
                 result = await this.parent.workspace.cellsDB.find({
                     selector: selector,
-                    sort: sort.length > 0 ? sort : undefined,
-                    fields: params.showDetail ? undefined : cellFieldsForCover,
+                    fields: params?.showDetail ? undefined : cellFieldsForCover,
+                    // sort: sort.length > 0 ? sort : undefined,
                     skip: skip,
                     limit: pageSize,
                 });
             } else {
                 result = await this.parent.workspace.cellsDB.find({
                     selector: selector,
-                    sort: sort.length > 0 ? sort : undefined,
-                    fields: params.showDetail ? undefined : cellFieldsForCover,
+                    fields: params?.showDetail ? undefined : cellFieldsForCover,
+                    // sort: sort.length > 0 ? sort : undefined,
+                    limit: 999999,
                 });
             }
-            let list = result.docs;
+            // let list = result.docs;
+            let list = sortArrayByOrders(result.docs, orders); // 排序
             const cids = list.map(cell => cell.cid); // 所有细胞的cid
             // 查询父级关联细胞
             let parentRelations = []; // 父级关系表
@@ -188,7 +188,8 @@ export default class Cells {
                 const relationsRes = await this.parent.workspace.cellsRelationsDB.find({
                     selector: {
                         targetId: { $in: cids },
-                    }
+                    },
+                    limit: 999
                 })
                 parentRelations = relationsRes.docs;
                 const sourceCellCids = parentRelations.map(relation => relation.sourceId);
@@ -196,7 +197,8 @@ export default class Cells {
                     selector: {
                         _id: { $in: sourceCellCids },
                     },
-                    fields: cellFieldsForTag
+                    fields: cellFieldsForTag,
+                    limit: 999
                 })
                 correlationParentCells = sourceCellsRes.docs;
             }
@@ -207,7 +209,8 @@ export default class Cells {
                 const relationsRes = await this.parent.workspace.cellsRelationsDB.find({
                     selector: {
                         sourceId: { $in: cids },
-                    }
+                    },
+                    limit: 9999
                 })
                 childrenRelations = relationsRes.docs;
                 const targetCellCids = childrenRelations.map(relation => relation.targetId);
@@ -215,7 +218,8 @@ export default class Cells {
                     selector: {
                         _id: { $in: targetCellCids },
                     },
-                    fields: cellFieldsForTag
+                    fields: cellFieldsForTag,
+                    limit: 9999
                 })
                 correlationChildrenCells = targetCellsRes.docs;
             }
@@ -223,6 +227,7 @@ export default class Cells {
             const relationsCURes = await this.parent.workspace.cellUserRelationsDB.find({
                 selector: {
                     cid: { $in: cids },
+                    limit: 9999
                 }
             })
             const relationsCUArr = relationsCURes.docs;
@@ -231,21 +236,23 @@ export default class Cells {
                 cell.isStar = relationsCUArr.some(relation => relation.cid === cell.cid && relation.type === 'star');
                 cell.isLike = relationsCUArr.some(relation => relation.cid === cell.cid && relation.type === 'like');
                 if (params.showCorrelationParents) {
-                    cell.correlationsParents = correlationParentCells.filter(targetCell => {
+                    const arr = correlationParentCells.filter(targetCell => {
                         return parentRelations.some(relation => {
                             return relation.sourceId === targetCell.cid && relation.targetId === cell.cid
                         })
                     })
+                    cell.correlationsParents = sortArrayByOrders(arr, orders);
                 }
                 if (params.showCorrelationChildren) {
-                    cell.correlationsChildren = correlationChildrenCells.filter(targetCell => {
+                    const arr = correlationChildrenCells.filter(targetCell => {
                         return childrenRelations.some(relation => {
                             return relation.sourceId === cell.cid && relation.targetId === targetCell.cid
                         })
                     })
+                    cell.correlationsChildren = sortArrayByOrders(arr, orders);
                 }
             }
-            return { data: list, total: total };
+            return { data: list, total: list.length };
         } catch (err) {
             console.error('get cells error', err);
             return null;
@@ -487,7 +494,7 @@ export default class Cells {
                 selector: {
                     sourceId: sourceId,
                     targetId: targetId
-                }
+                },
             });
             const relation = relationRes.docs.length ? relationRes.docs[0] : null;
             if (relation) {
@@ -518,7 +525,7 @@ export default class Cells {
                     selector: {
                         cid: cid,
                         type: type
-                    }
+                    },
                 })
                 if (relationRes.docs.length === 0) {
                     const reid = uuidv4();
@@ -557,7 +564,7 @@ export default class Cells {
                 selector: {
                     cid: cid,
                     type: type
-                }
+                },
             });
             const relation = relationRes.docs.length ? relationRes.docs[0] : null;
             if (relation) {
@@ -579,17 +586,20 @@ export default class Cells {
         const relation1 = await this.parent.workspace.cellsRelationsDB.find({
             selector: {
                 sourceId: cid,
-            }
+            },
+            limit: 9999
         });
         const relation2 = await this.parent.workspace.cellsRelationsDB.find({
             selector: {
                 targetId: cid,
-            }
+            },
+            limit: 9999
         });
         const relation3 = await this.parent.workspace.cellUserRelationsDB.find({
             selector: {
                 cid: cid,
-            }
+            },
+            limit: 9999
         })
         const list = [...relation1.docs, ...relation2.docs, ...relation3.docs];
         const docsToDelete = list.map(row => {

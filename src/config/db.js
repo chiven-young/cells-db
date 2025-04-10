@@ -44,7 +44,7 @@ export const formatWorkspace = (workspace) => {
 export const cellIndexs = {
     fields: ['typeGroup', 'type', 'status', 'isRoot', 'createTime', 'updateTime', 'publishTime', 'name'],
     name: 'cellIndexs',
-    ddoc: 'evolver_cells_doc',
+    ddoc: 'cellsdb_doc',
     type: 'json',
     partial_filter_selector: {
         status: { $gte: 0, $lte: 4 },
@@ -55,13 +55,13 @@ export const cellIndexs = {
 export const cellRelationsIndexs = {
     fields: ['sourceId', 'targetId'],
     name: 'cellRelationsIndexs',
-    ddoc: 'evolver_cells_doc',
+    ddoc: 'cellsdb_doc',
 }
 
 export const cellUserRelationsIndexs = {
     fields: ['cid', 'type'],
     name: 'cellUserRelationsIndexs',
-    ddoc: 'evolver_cells_doc',
+    ddoc: 'cellsdb_doc',
 }
 
 export const cellFieldsForCover = ['cid', 'name', 'description', 'typeGroup', 'type', 'icon', 'cover', 'status', 'encrypted', 'isRoot', 'style', 'config', 'statistics', 'createTime', 'updateTime', 'publishTime'];

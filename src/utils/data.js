@@ -22,6 +22,34 @@ export function formattingData(arr, group_key) {
     return res
 }
 
+// 根据排序规则对数组进行排序
+export function sortArrayByOrders(arr, orders) {
+    return arr.sort((a, b) => {
+        for (const order of orders) {
+            const { column, order: sortOrder } = order;
+            let comparison;
+            if (typeof a[column] === 'number' && typeof b[column] === 'number') {
+                comparison = a[column] - b[column];
+            } else {
+                if (a[column] < b[column]) {
+                    comparison = -1;
+                } else if (a[column] > b[column]) {
+                    comparison = 1;
+                } else {
+                    comparison = 0;
+                }
+            }
+            if (sortOrder === 'DESC') {
+                comparison = -comparison;
+            }
+            if (comparison!== 0) {
+                return comparison;
+            }
+        }
+        return 0;
+    });
+}
+
 // 将一个数组替换到另一个数组的指定位置的前面或后面
 export function replaceArray(arr1, arr2, index, direction) {
     if (direction !== 'before' && direction !== 'after') {
