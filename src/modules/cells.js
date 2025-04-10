@@ -13,6 +13,7 @@ export default class Cells {
     /**
      * 获取细胞列表
      * @param {Number} cid - 细胞id，如果传此值表示只精确查询此细胞
+     * @param {String} keywords - 关键词，支持模糊查询
      * @param {String} partition - 分区，空则查全部
      * @param {String} typeGroup - 大类别，type的上级，空则查全部
      * @param {String} type - 类别，空则查全部
@@ -50,8 +51,13 @@ export default class Cells {
                 orders.push(obj)
             }
         }
-        const page = params?.page || 1;
-        const pageSize = params?.pageSize || 20;
+        let page = params?.page || 1;
+        let pageSize = params?.pageSize || 20;
+        const searchTerm = params?.keywords;  // 模糊查询的关键词
+        if (searchTerm) {
+            page = 1;
+            pageSize = -1;
+        }
         const minStatus = typeof params?.minStatus === 'number' ? params.minStatus : 0;
         const maxStatus = typeof params?.maxStatus === 'number' ? params.maxStatus : 4;
         try {
@@ -178,8 +184,16 @@ export default class Cells {
                     limit: 999999,
                 });
             }
-            // let list = result.docs;
-            let list = sortArrayByOrders(result.docs, orders); // 排序
+            let docs = [];
+            if (searchTerm) {
+                const regex = new RegExp(searchTerm, 'i');
+                docs = result.docs.filter(doc => {
+                    return regex.test(doc?.name) || regex.test(doc?.data?.content) || regex.test(doc?.data?.text);
+                });
+            } else {
+                docs = result.docs;
+            }
+            let list = sortArrayByOrders(docs, orders); // 排序
             const cids = list.map(cell => cell.cid); // 所有细胞的cid
             // 查询父级关联细胞
             let parentRelations = []; // 父级关系表
